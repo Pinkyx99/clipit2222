@@ -1,6 +1,5 @@
 export type AppName = 'twitch' | 'capcut' | 'tiktok' | 'whop' | 'clips' | 'bank' | 'settings';
-export type GameView = 'homescreen' | AppName | 'clipping' | 'editing' | 'posting';
-
+export type GameView = 'homescreen' | AppName | 'clipping' | 'editing';
 
 export interface PlayerState {
     money: number;
@@ -12,11 +11,18 @@ export interface PlayerState {
     tiktokPfp: string | null;
     postedVideos: TikTokPost[];
     rawClips: RawClip[];
+    editedClips: EditedClip[];
     activeCampaigns: Campaign[];
     availableCampaigns: Campaign[];
     lastLogin: string | null;
-    tutorialStep: number;
     randomEvent: { message: string, active: boolean };
+    dailyStats: DailyStat[];
+}
+
+export interface DailyStat {
+    date: string; // YYYY-MM-DD
+    followersGained: number;
+    moneyGained: number;
 }
 
 export interface Streamer {
@@ -24,6 +30,8 @@ export interface Streamer {
     name: string;
     imgSrc: string;
     popularity: number; // 1-10 scale
+    minViewers?: number;
+    maxViewers?: number;
 }
 
 export interface RawClip {
@@ -35,17 +43,28 @@ export interface RawClip {
 }
 
 export interface EditedClip extends RawClip {
-    quality: number; // Based on player level
+    quality: number; // Represents editing performance (e.g., 1.0 for perfect, 0.9 for rushed)
 }
 
 export interface TikTokPost extends EditedClip {
     title: string;
     hashtags: string[];
-    views: number;
-    likes: number;
-    comments: number;
-    shares: number;
-    earnings: number;
+    
+    // Target (final) values
+    targetViews: number;
+    targetLikes: number;
+    targetComments: number;
+    targetShares: number;
+    targetEarnings: number;
+    targetFollowersGained: number;
+
+    // Current, dynamic values
+    currentViews: number;
+    currentLikes: number;
+    currentComments: number;
+    currentShares: number;
+    currentEarnings: number;
+    currentFollowersGained: number;
 }
 
 export interface Campaign {

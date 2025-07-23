@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { GameView, Streamer, RawClip, EditedClip, AppName } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { GameView, Streamer, RawClip, EditedClip, AppName, TikTokPost, DailyStat } from './types';
 import useGameLogic from './hooks/useGameLogic';
 import Twitch from './components/Twitch';
-import ClipMiniGame from './components/ClipMiniGame';
+import StreamClippingPage from './components/StreamClippingPage';
 import CapCut from './components/CapCut';
 import TikTok from './components/TikTok';
 import Whop from './components/Whop';
-import { STREAMERS, TUTORIAL_STEPS } from './constants';
-import TutorialPopup from './components/ui/TutorialPopup';
+import { STREAMERS, LEVEL_THRESHOLDS } from './constants';
 import PhoneFrame from './components/phone/PhoneFrame';
 import HomeScreen from './components/phone/HomeScreen';
 import AppView from './components/phone/AppView';
 import Clips from './components/Clips';
 import Bank from './components/Bank';
+import { BankIcon, FilmIcon, StarIcon } from './components/icons/Icons';
+
 
 const App: React.FC = () => {
     const {
@@ -26,21 +27,107 @@ const App: React.FC = () => {
 
     const [view, setView] = useState<GameView>('homescreen');
     const [selectedStreamer, setSelectedStreamer] = useState<Streamer | null>(null);
-    const [rawClip, setRawClip] = useState<RawClip | null>(null);
-    const [editedClip, setEditedClip] = useState<EditedClip | null>(null);
     const [cooldown, setCooldown] = useState(0);
-    const [isTutorialPopupVisible, setTutorialPopupVisible] = useState(true);
 
-    useEffect(() => {
-        setTutorialPopupVisible(true);
-    }, [gameState.tutorialStep]);
-    
     const goHome = () => {
         setView('homescreen');
         setSelectedStreamer(null);
-        setRawClip(null);
-        setEditedClip(null);
     };
+
+    // --- Main Game Loop for Gradual Stats & Analytics Data Recording ---
+    useEffect(() => {
+        const gameLoop = setInterval(() => {
+            setGameState(prev => {
+                let hasChanges = false;
+                const newPostedVideos = [...prev.postedVideos];
+                let moneyGainedThisTick = 0;
+                let followersGainedThisTick = 0;
+                
+                for (let i = 0; i < newPostedVideos.length; i++) {
+                    const post = { ...newPostedVideos[i] };
+                    let postChanged = false;
+
+                    // Increment views
+                    if (post.currentViews < post.targetViews) {
+                        const increment = Math.max(1, Math.ceil((post.targetViews - post.currentViews) * 0.05));
+                        post.currentViews = Math.min(post.targetViews, post.currentViews + increment);
+                        postChanged = true;
+                    }
+
+                    // Increment others based on view percentage
+                    const progress = post.targetViews > 0 ? post.currentViews / post.targetViews : 1;
+                    
+                    const oldFollowers = post.currentFollowersGained;
+                    post.currentLikes = Math.floor(progress * post.targetLikes);
+                    post.currentComments = Math.floor(progress * post.targetComments);
+                    post.currentShares = Math.floor(progress * post.targetShares);
+                    post.currentEarnings = progress * post.targetEarnings;
+                    post.currentFollowersGained = Math.floor(progress * post.targetFollowersGained);
+                    
+                    if(post.currentFollowersGained > oldFollowers) {
+                        followersGainedThisTick += post.currentFollowersGained - oldFollowers;
+                    }
+
+                    if (postChanged) {
+                        hasChanges = true;
+                        newPostedVideos[i] = post;
+                    }
+                }
+                
+                const totalCurrentEarnings = newPostedVideos.reduce((sum, post) => sum + post.currentEarnings, 0);
+                const totalPreviousEarnings = prev.postedVideos.reduce((sum, post) => sum + post.currentEarnings, 0);
+                moneyGainedThisTick = totalCurrentEarnings - totalPreviousEarnings;
+                
+                if (hasChanges) {
+                    const newFollowers = prev.followers + followersGainedThisTick;
+                    const newXp = prev.xp + Math.floor(moneyGainedThisTick * 10);
+                    let newLevel = prev.level;
+                    if (newLevel < LEVEL_THRESHOLDS.length && newXp >= LEVEL_THRESHOLDS[newLevel]) {
+                        newLevel++;
+                    }
+
+                    // --- New Analytics Data Recording Logic ---
+                    const today = new Date().toISOString().split('T')[0];
+                    let newDailyStats = [...(prev.dailyStats || [])];
+                    const todayStatIndex = newDailyStats.findIndex(s => s.date === today);
+
+                    if (todayStatIndex > -1) {
+                        const todayStat = newDailyStats[todayStatIndex];
+                        newDailyStats[todayStatIndex] = {
+                            ...todayStat,
+                            followersGained: todayStat.followersGained + followersGainedThisTick,
+                            moneyGained: todayStat.moneyGained + moneyGainedThisTick,
+                        };
+                    } else {
+                        newDailyStats.push({
+                            date: today,
+                            followersGained: followersGainedThisTick,
+                            moneyGained: moneyGainedThisTick,
+                        });
+                    }
+
+                    if (newDailyStats.length > 30) {
+                        newDailyStats = newDailyStats.slice(-30);
+                    }
+
+                    return {
+                        ...prev,
+                        postedVideos: newPostedVideos,
+                        money: prev.money + moneyGainedThisTick,
+                        followers: newFollowers,
+                        xp: newXp,
+                        level: newLevel,
+                        isPartner: newFollowers >= 10000 ? true : prev.isPartner,
+                        dailyStats: newDailyStats,
+                    };
+                }
+
+                return prev;
+            });
+        }, 1000); // Run loop every second
+
+        return () => clearInterval(gameLoop);
+    }, [setGameState]);
 
     const handleClipSuccess = (streamer: Streamer) => {
         const newClip: RawClip = {
@@ -53,34 +140,31 @@ const App: React.FC = () => {
         setGameState(prev => ({
             ...prev,
             rawClips: [newClip, ...prev.rawClips].slice(0, 50),
-            tutorialStep: Math.max(prev.tutorialStep, 2)
         }));
-        setRawClip(newClip);
-        setView('editing');
+        goHome();
     };
 
     const handleClipFailure = () => {
         setCooldown(30);
     };
 
-    const handleEditingComplete = (clip: RawClip) => {
+    const handleEditingComplete = (clip: RawClip, quality: number) => {
         const newEditedClip: EditedClip = {
             ...clip,
-            quality: gameState.level,
+            quality: quality,
         };
-        setEditedClip(newEditedClip);
-        setView('posting');
-        setGameState(prev => ({...prev, tutorialStep: Math.max(prev.tutorialStep, 3)}));
+        
+        setGameState(prev => ({
+            ...prev,
+            rawClips: prev.rawClips.filter(c => c.id !== clip.id),
+            editedClips: [newEditedClip, ...prev.editedClips],
+        }));
+        goHome();
     };
 
-    const handlePost = (title: string, hashtags: string[]) => {
-        if (editedClip) {
-            postVideo(editedClip, title, hashtags);
-            checkForRandomEvent();
-            setEditedClip(null);
-            setView('tiktok');
-            setGameState(prev => ({...prev, tutorialStep: Math.max(prev.tutorialStep, 4)}));
-        }
+    const handlePost = (clip: EditedClip, title: string, hashtags: string[]) => {
+        postVideo(clip, title, hashtags);
+        checkForRandomEvent();
     };
     
     useEffect(() => {
@@ -101,7 +185,7 @@ const App: React.FC = () => {
 
             case 'clipping':
                 if (selectedStreamer) {
-                    return <ClipMiniGame 
+                    return <StreamClippingPage 
                         streamer={selectedStreamer}
                         onSuccess={() => handleClipSuccess(selectedStreamer)}
                         onFailure={handleClipFailure}
@@ -110,17 +194,8 @@ const App: React.FC = () => {
                 }
                 goHome(); return null;
 
-            case 'editing':
-                if(rawClip){
-                    return <CapCut rawClip={rawClip} onFinishEditing={handleEditingComplete} />
-                }
-                goHome(); return null;
-
-            case 'posting':
-                if (editedClip) {
-                    return <TikTok editedClip={editedClip} onPost={handlePost} gameState={gameState} setView={setView} setGameState={setGameState} />;
-                }
-                goHome(); return null;
+            case 'capcut':
+                 return <AppView title="CapCut" goHome={goHome}><CapCut allClips={gameState.rawClips} onFinishEditing={handleEditingComplete} /></AppView>;
             
             case 'twitch':
                 return <AppView title="Twitch" goHome={goHome}><Twitch 
@@ -128,12 +203,11 @@ const App: React.FC = () => {
                     onSelectStreamer={(s) => { 
                         setSelectedStreamer(s); 
                         setView('clipping');
-                        setGameState(prev => ({...prev, tutorialStep: Math.max(prev.tutorialStep, 1)}));
                     }} 
                 /></AppView>;
 
             case 'tiktok':
-                 return <AppView title="TikTok" goHome={goHome}><TikTok editedClip={null} onPost={handlePost} gameState={gameState} setView={setView} setGameState={setGameState} /></AppView>;
+                 return <AppView title="TikTok" goHome={goHome}><TikTok gameState={gameState} setGameState={setGameState} onPost={handlePost} /></AppView>;
            
             case 'whop':
                 return <AppView title="Whop" goHome={goHome}><Whop campaigns={gameState.availableCampaigns} onJoinCampaign={joinCampaign} money={gameState.money} /></AppView>;
@@ -153,24 +227,10 @@ const App: React.FC = () => {
         }
     };
 
-    const closeTutorial = () => {
-        setTutorialPopupVisible(false);
-        if(gameState.tutorialStep === TUTORIAL_STEPS.length - 1){
-             setGameState(prev => ({...prev, tutorialStep: 999})); // End tutorial
-        }
-    };
-
     return (
         <PhoneFrame>
             <div className="w-full h-full bg-black relative">
                 {renderScreen()}
-                {gameState.tutorialStep < TUTORIAL_STEPS.length && isTutorialPopupVisible && (
-                    <TutorialPopup
-                        step={gameState.tutorialStep}
-                        content={TUTORIAL_STEPS[gameState.tutorialStep]}
-                        onClose={closeTutorial}
-                    />
-                )}
             </div>
         </PhoneFrame>
     );

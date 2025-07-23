@@ -1,14 +1,15 @@
-
 import { Streamer, Campaign } from './types';
 
 export const STREAMERS: Streamer[] = [
-    { id: 1, name: 'iShowSpeed', imgSrc: 'https://picsum.photos/seed/ishowspeed/100/100', popularity: 10 },
-    { id: 2, name: 'xQc', imgSrc: 'https://picsum.photos/seed/xqc/100/100', popularity: 9 },
-    { id: 3, name: 'Kai Cenat', imgSrc: 'https://picsum.photos/seed/kaicenat/100/100', popularity: 10 },
-    { id: 4, name: 'Pokimane', imgSrc: 'https://picsum.photos/seed/pokimane/100/100', popularity: 8 },
-    { id: 5, name: 'DrDisrespect', imgSrc: 'https://picsum.photos/seed/drdisrespect/100/100', popularity: 7 },
-    { id: 6, name: 'Auronplay', imgSrc: 'https://picsum.photos/seed/auronplay/100/100', popularity: 9 },
+    { id: 1, name: 'iShowSpeed', imgSrc: 'https://i.imgur.com/a8Rs1hS.jpg', popularity: 10, minViewers: 80000, maxViewers: 100000 },
+    { id: 2, name: 'xQc', imgSrc: 'https://i.imgur.com/4D4bxDu.png', popularity: 9, minViewers: 20000, maxViewers: 50000 },
+    { id: 3, name: 'Kai Cenat', imgSrc: 'https://i.imgur.com/EslwjyG.jpg', popularity: 10, minViewers: 90000, maxViewers: 120000 },
+    { id: 4, name: 'Pokimane', imgSrc: 'https://i.imgur.com/PihoScn.jpg', popularity: 8, minViewers: 10000, maxViewers: 20000 },
 ];
+
+export const FAKE_CHAT_USERS = ['Clipper_1', 'NoobMaster69', 'xX_Gamer_Xx', 'W_Enjoyer', 'ChatterBox', 'RandomViewer', 'SpeedFan_123', 'Juicer12', 'KaiMafia', 'PokiFan'];
+export const FAKE_CHAT_MESSAGES = ['CLIP IT!', 'W MOMENT', 'L STREAMER', 'KEKW', 'OMEGALUL', 'WTF', 'POG', 'SO GOOD', 'EZ', 'Actually good', 'BORING', '🔥🔥🔥', '💀💀💀', 'GOATED', 'That was insane!', 'Chat, are you seeing this?'];
+
 
 export const VIRAL_HASHTAGS = [
     '#fyp', '#gaming', '#viral', '#streamer', '#funny', '#fail', '#fortnite', '#minecraft', '#live', '#react'
@@ -28,12 +29,4 @@ export const INITIAL_CAMPAIGNS: Campaign[] = [
     { id: 2, name: 'xQc Juicer Moments', streamerId: 2, payoutPer1000Views: 6, fee: 250, description: 'Find the best "juicer" clips from xQc.', active: false },
     { id: 3, name: 'Kai Cenat Mafia Highlights', streamerId: 3, payoutPer1000Views: 7, fee: 500, description: 'Clip the most intense Mafia game moments.', active: false },
     { id: 4, name: 'Poki\'s Wholesome Clips', streamerId: 4, payoutPer1000Views: 3, fee: 50, description: 'Share wholesome and funny clips.', active: false },
-];
-
-export const TUTORIAL_STEPS = [
-    "Welcome to Clip It Tycoon! Your goal is to get 10,000 followers. First, let's get a clip. Tap the 'Twitch' icon below and select a streamer.",
-    "Great! Now for the fun part. Tap the screen when the moving bar is inside the green target zone to capture a clip!",
-    "Awesome clip! Now let's edit it. Tap 'Start Editing' and wait for it to process. This is your 'CapCut' station.",
-    "Perfectly edited! Time to post it. Give your video a title, add some hashtags, and hit 'Post to TikTok'!",
-    "Your first video is up! Check your TikTok feed to see how it performs. Keep posting to gain followers and earn money. Good luck!",
 ];

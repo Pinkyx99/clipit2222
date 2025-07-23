@@ -1,48 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clip It Tycoon</title>
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- PWA Manifest & Theme -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#1f2937" />
-
-  <!-- Import Maps for React -->
-  <script type="importmap">
-  {
-    "imports": {
-      "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-      "react/": "https://esm.sh/react@^19.1.0/",
-      "react": "https://esm.sh/react@^19.1.0"
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clip It Tycoon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#1f2937">
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "react": "https://esm.sh/react@^19.1.0"
   }
-  </script>
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="index.css" />
+}
+</script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-gray-800 text-white font-sans antialiased flex items-center justify-center min-h-screen">
-  <div id="root"></div>
-
-  <!-- App Script -->
-  <script type="module" src="index.tsx"></script>
-
-  <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(registration => {
-          console.log('✅ ServiceWorker registered:', registration.scope);
-        }).catch(err => {
-          console.error('❌ ServiceWorker registration failed:', err);
-        });
-      });
-    }
-  </script>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

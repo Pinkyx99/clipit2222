@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PlayerState, EditedClip, Campaign, TikTokPost, RawClip } from '../types';
+import { PlayerState, EditedClip, Campaign, TikTokPost, RawClip, DailyStat } from '../types';
 import { LEVEL_THRESHOLDS, INITIAL_CAMPAIGNS } from '../constants';
 
 const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
@@ -36,11 +36,12 @@ const INITIAL_STATE: PlayerState = {
     tiktokPfp: null,
     postedVideos: [],
     rawClips: [],
+    editedClips: [],
     activeCampaigns: [],
     availableCampaigns: INITIAL_CAMPAIGNS,
     lastLogin: null,
-    tutorialStep: 0,
     randomEvent: { message: '', active: false },
+    dailyStats: [],
 };
 
 const useGameLogic = () => {
@@ -79,22 +80,50 @@ const useGameLogic = () => {
     }, [gameState.lastLogin, gameState.level, addMoney, setGameState]);
 
     const postVideo = (clip: EditedClip, title: string, hashtags: string[]): TikTokPost => {
-        const levelMultiplier = 1 + (gameState.level - 1) * 0.1;
-        const partnershipMultiplier = gameState.isPartner ? 1.5 : 1;
+        const { level, isPartner, postedVideos, followers, activeCampaigns } = gameState;
+        const levelMultiplier = 1 + (level - 1) * 0.1;
+        const partnershipMultiplier = isPartner ? 1.5 : 1;
         
-        let baseViews = Math.floor(Math.random() * 4900) + 100;
-        const isViral = Math.random() < (0.5 + (gameState.level * 0.01));
-        if (isViral) {
-            baseViews *= (Math.random() * 15 + 5); // Viral multiplier
+        const postCount = postedVideos.length;
+        let baseViews = 0;
+
+        // Tutorial posts
+        if (postCount === 0) {
+            baseViews = Math.floor(Math.random() * 101) + 100; // 100-200 views
+        } else if (postCount === 1) {
+            baseViews = 350 + Math.floor(Math.random() * 101); // ~400 views
+        } else if (postCount === 2) {
+            baseViews = 20000 + Math.floor(Math.random() * 10001); // 20k-30k views (viral)
+        } else {
+            // Follower-based progressive system
+            let successChance = 0.30;
+            let minViews = 100, maxViews = 1000;
+
+            if (followers < 1000) {
+                successChance = 0.30; minViews = 100; maxViews = 1000;
+            } else if (followers < 2000) {
+                successChance = 0.40; minViews = 100; maxViews = 3000;
+            } else if (followers < 5000) {
+                successChance = 0.50; minViews = 100; maxViews = 5000;
+            } else if (followers < 10000) {
+                successChance = 0.60; minViews = 100; maxViews = 8000;
+            } else { // 10k+
+                successChance = 0.75; minViews = 100; maxViews = 10000;
+            }
+
+            if (Math.random() < successChance) {
+                baseViews = Math.floor(Math.random() * (maxViews - minViews + 1)) + minViews;
+            } else {
+                baseViews = Math.floor(Math.random() * 91) + 10; // 10-100 views
+            }
         }
 
-        const totalViews = Math.floor(baseViews * levelMultiplier * partnershipMultiplier);
-        
-        const payoutRate = gameState.isPartner ? 2 : 0.5;
+        const totalViews = Math.floor(baseViews * levelMultiplier * partnershipMultiplier * clip.quality);
+        const payoutRate = isPartner ? 2 : 0.5;
         let earnings = (totalViews / 1000) * payoutRate;
 
         // Check for campaign bonus
-        const activeCampaign = gameState.activeCampaigns.find(c => c.streamerId === clip.streamerId);
+        const activeCampaign = activeCampaigns.find(c => c.streamerId === clip.streamerId);
         if(activeCampaign){
             earnings += (totalViews / 1000) * activeCampaign.payoutPer1000Views;
         }
@@ -105,21 +134,27 @@ const useGameLogic = () => {
             ...clip,
             title,
             hashtags,
-            views: totalViews,
-            likes: Math.floor(totalViews * (Math.random() * 0.3 + 0.6)),
-            comments: Math.floor(totalViews * (Math.random() * 0.05 + 0.01)),
-            shares: Math.floor(totalViews * (Math.random() * 0.02 + 0.005)),
-            earnings,
+            targetViews: totalViews,
+            targetLikes: Math.floor(totalViews * (Math.random() * 0.3 + 0.6)),
+            targetComments: Math.floor(totalViews * (Math.random() * 0.05 + 0.01)),
+            targetShares: Math.floor(totalViews * (Math.random() * 0.02 + 0.005)),
+            targetEarnings: earnings,
+            targetFollowersGained: followersGained,
+            // Initialize current stats to 0
+            currentViews: 0,
+            currentLikes: 0,
+            currentComments: 0,
+            currentShares: 0,
+            currentEarnings: 0,
+            currentFollowersGained: 0,
         };
-
-        addMoney(earnings);
-        addFollowers(followersGained);
-        addXp(Math.floor(totalViews / 100));
-
+        
+        // State update is now simpler: just add the post.
+        // The game loop in App.tsx will handle gradual stat increases.
         setGameState(prev => ({
             ...prev,
             postedVideos: [newPost, ...prev.postedVideos],
-            isPartner: prev.followers + followersGained >= 10000 ? true : prev.isPartner
+            editedClips: prev.editedClips.filter(c => c.id !== clip.id),
         }));
         
         return newPost;

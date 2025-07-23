@@ -1,5 +1,6 @@
 {
   "name": "Copy of Clip It Tycoon",
   "description": "A simulation game where you become a content clipping tycoon. Find viral moments from streamers, edit them, and post to TikTok to gain followers and money.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "prompt": ""
 }
